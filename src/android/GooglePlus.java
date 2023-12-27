@@ -64,7 +64,9 @@ public class GooglePlus extends CordovaPlugin implements GoogleApiClient.OnConne
     public static final String ARGUMENT_SCOPES = "scopes";
     public static final String ARGUMENT_OFFLINE_KEY = "offline";
     public static final String ARGUMENT_HOSTED_DOMAIN = "hostedDomain";
-
+    public static final String ARGUMENT_SAFE_MODE = "safeMode";
+    public static final String ARGUMENT_CRASH_TEST = "crashTest";
+    
     public static final String TAG = "GooglePlugin";
     public static final int RC_GOOGLEPLUS = 1552; // Request Code to identify our plugin's activities
     public static final int KAssumeStaleTokenSec = 60;
@@ -74,6 +76,8 @@ public class GooglePlus extends CordovaPlugin implements GoogleApiClient.OnConne
     private CallbackContext savedCallbackContext;
     
     private ActivityResultLauncher<Intent> signInActivityLauncher;
+    private boolean safeMode = false;
+    private boolean crashTest = false;
     
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -150,7 +154,9 @@ public class GooglePlus extends CordovaPlugin implements GoogleApiClient.OnConne
         if (clientOptions == null) {
             return;
         }
-
+        this.safeMode = clientOptions.optBoolean(ARGUMENT_SAFE_MODE, false);
+        this.crashTest = clientOptions.optBoolean(ARGUMENT_CRASH_TEST, false);
+        
         //If options have been passed in, they could be different, so force a rebuild of the client
         // disconnect old client iff it exists
         if (this.mGoogleApiClient != null) this.mGoogleApiClient.disconnect();
@@ -318,7 +324,22 @@ public class GooglePlus extends CordovaPlugin implements GoogleApiClient.OnConne
      * @param signInResult - the GoogleSignInResult object retrieved in the onActivityResult method.
      */
     private void handleSignInResult(final GoogleSignInResult signInResult) {
+
+        
+        if (this.safeMode) {
+            // savedCallbackContext was null in multiple crash reports, unable to reproduce, using this as fallback
+            // handle in cordova app e.g. timeouts 
+            if (savedCallbackContext == null) {
+                return;
+          }
+            // use this to test safe mode crash handling
+            if (this.crashTest) {
+                return;
+            }
+        }
+        
         if (this.mGoogleApiClient == null) {
+            // here savedCallbackContext was null in multiple crash reports, unable to reproduce
             savedCallbackContext.error("GoogleApiClient was never initialized");
             return;
         }
