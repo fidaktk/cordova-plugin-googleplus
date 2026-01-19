@@ -340,12 +340,16 @@ public class GooglePlus extends CordovaPlugin implements GoogleApiClient.OnConne
         
         if (this.mGoogleApiClient == null) {
             // here savedCallbackContext was null in multiple crash reports, unable to reproduce
-            savedCallbackContext.error("GoogleApiClient was never initialized");
+            if (savedCallbackContext != null) {
+                savedCallbackContext.error("GoogleApiClient was never initialized");
+            }
             return;
         }
 
         if (signInResult == null) {
-          savedCallbackContext.error("SignInResult is null");
+          if (savedCallbackContext != null) {
+              savedCallbackContext.error("SignInResult is null");
+          }
           return;
         }
 
@@ -355,8 +359,12 @@ public class GooglePlus extends CordovaPlugin implements GoogleApiClient.OnConne
             Log.i(TAG, "Wasn't signed in");
 
             //Return the status code to be handled client side
-            savedCallbackContext.error(signInResult.getStatus().getStatusCode());
+            if (savedCallbackContext != null) {
+                savedCallbackContext.error(signInResult.getStatus().getStatusCode());
+            }
         } else {
+            // Capture callback context reference for use in AsyncTask (may be null)
+            final CallbackContext callbackContext = savedCallbackContext;
             new AsyncTask<Void, Void, Void>() {
                 @Override
                 protected Void doInBackground(Void... params) {
@@ -377,9 +385,13 @@ public class GooglePlus extends CordovaPlugin implements GoogleApiClient.OnConne
                         result.put("familyName", acct.getFamilyName());
                         result.put("givenName", acct.getGivenName());
                         result.put("imageUrl", acct.getPhotoUrl());
-                        savedCallbackContext.success(result);
+                        if (callbackContext != null) {
+                            callbackContext.success(result);
+                        }
                     } catch (Exception e) {
-                        savedCallbackContext.error("Trouble obtaining result, error: " + e.getMessage());
+                        if (callbackContext != null) {
+                            callbackContext.error("Trouble obtaining result, error: " + e.getMessage());
+                        }
                     }
                     return null;
                 }
